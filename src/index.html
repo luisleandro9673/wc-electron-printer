@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Pedidos – WC Electron Printer</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body data-theme="dark">
+  <header class="topbar">
+    <h1 class="m-0">Pedidos</h1>
+    <div class="actions">
+      <button id="btn-refrescar" type="button" class="btn btn-ghost">↻ Refrescar</button>
+      <button id="btn-config" type="button" class="btn btn-primary">⚙️ Config</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="toolbar">
+      <label>Estado:&nbsp;
+        <select id="filtro-estado" class="select">
+          <option value="all">Todos</option>
+          <option value="nuevo">Nuevo pedido</option>
+          <option value="aceptado">Aceptado</option>
+          <option value="pagado">Pagado</option>
+          <option value="enviado">Enviado</option>
+          <option value="completado">Completado</option>
+        </select>
+      </label>
+      <input id="buscar" class="input" placeholder="Buscar por cliente o #ID">
+    </section>
+
+    <section class="listado">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#ID</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th style="text-align:right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body"></tbody>
+      </table>
+      <div id="vacio" class="vacio" hidden>No hay pedidos para mostrar.</div>
+    </section>
+  </main>
+
+  <!-- Modal Detalle Pedido -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2 id="m-title" class="m-0">Pedido</h2>
+        <button id="m-close" type="button" title="Cerrar" class="btn btn-ghost btn-sm">✕</button>
+      </header>
+      <section class="modal-body" id="m-body"></section>
+      <footer class="modal-foot">
+        <button id="m-print" type="button" class="btn btn-success">🖨 Imprimir</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal Config -->
+  <div id="cfg" class="modal" hidden>
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <header class="modal-head">
+        <h2 class="m-0">Configuración</h2>
+        <button id="cfg-close" type="button" title="Cerrar" class="btn btn-ghost btn-sm">✕</button>
+      </header>
+      <section class="modal-body">
+        <form id="cfg-form">
+          <div class="grid2">
+            <div class="box">
+              <h3>WooCommerce</h3>
+              <label>URL<br><input id="cfg-url" class="input" placeholder="https://tu-dominio.com"></label>
+              <label>Consumer Key (ck_)<br><input id="cfg-ck" class="input" placeholder="ck_xxx"></label>
+              <label>Consumer Secret (cs_)<br><input id="cfg-cs" class="input" placeholder="cs_xxx"></label>
+              <div class="row">
+                <label><input type="checkbox" name="st" value="processing"> en preparación</label>
+                <label><input type="checkbox" name="st" value="on-hold"> en espera</label>
+                <label><input type="checkbox" name="st" value="pending"> pendiente</label>
+                <label><input type="checkbox" name="st" value="completed"> completado</label>
+              </div>
+            </div>
+
+            <div class="box">
+              <h3>Impresora</h3>
+              <label>Tipo<br>
+                <select id="cfg-type" class="select">
+                  <option value="network">Red (IP)</option>
+                  <option value="usb">USB</option>
+                  <option value="winspool">Windows (cola del sistema)</option>
+                </select>
+              </label>
+
+              <div id="net-fields" class="grid2">
+                <label>Host/IP<br><input id="cfg-host" class="input" placeholder="192.168.1.120"></label>
+                <label>Puerto<br><input id="cfg-port" type="number" class="input" placeholder="9100"></label>
+              </div>
+
+              <div id="usb-fields" class="usb-fields" hidden>
+                <div class="row">
+                  <button type="button" id="cfg-scan-usb" class="btn btn-ghost">🔌 Detectar USB</button>
+                  <select id="cfg-usb-list" class="select">
+                    <option value="">— Seleccioná una impresora USB —</option>
+                  </select>
+                </div>
+                <small class="muted">Si no aparece, revisá permisos (udev) y reconectá el USB.</small>
+              </div>
+
+              <div id="win-fields" class="usb-fields" hidden>
+                <div class="row">
+                  <button type="button" id="cfg-scan-win" class="btn btn-ghost">🖨 Detectar impresoras de Windows</button>
+                  <select id="cfg-win-list" class="select">
+                    <option value="">— Seleccioná —</option>
+                  </select>
+                </div>
+                <small class="muted">Solo en Windows.</small>
+              </div>
+
+              <label>Ancho (caracteres)<br>
+                <select id="cfg-width" class="select">
+                  <option value="32">32 (58mm)</option>
+                  <option value="42">42 (80mm)</option>
+                </select>
+              </label>
+              <label>Nombre comercio<br><input id="cfg-negocio" class="input" placeholder="Mi Negocio"></label>
+              <label>Ciudad<br><input id="cfg-ciudad" class="input" placeholder="Caleta Olivia"></label>
+              <label>Pie de ticket<br><input id="cfg-pie" class="input" placeholder="¡Gracias por su compra!"></label>
+            </div>
+          </div>
+
+          <div class="box">
+            <h3>Apariencia y Comportamiento</h3>
+            <div class="row">
+              <label>Tema<br>
+                <select id="cfg-theme" class="select">
+                  <option value="dark">Oscuro</option>
+                  <option value="blue">Azul Noche</option>
+                  <option value="light">Claro</option>
+                  <option value="custom">Personalizado</option>
+                </select>
+              </label>
+              <label><input type="checkbox" id="cfg-auto"> Actualizar automáticamente</label>
+              <label>Intervalo<br>
+                <select id="cfg-interval" class="select">
+                  <option value="15">15 s</option>
+                  <option value="30">30 s</option>
+                  <option value="60">1 min</option>
+                  <option value="120">2 min</option>
+                </select>
+              </label>
+              <label>Duración de alarma<br>
+                <select id="cfg-alarm" class="select">
+                  <option value="off">Sin sonido</option>
+                  <option value="3s">3 s</option>
+                  <option value="5s">5 s</option>
+                  <option value="until">Hasta aceptar</option>
+                </select>
+              </label>
+              <label>Tipo de sonido<br>
+                <span style="display:flex;gap:8px;align-items:center">
+                  <select id="cfg-sound" class="select">
+                    <option value="beep">Beep</option>
+                    <option value="campana">Campana</option>
+                    <option value="sirena">Sirena</option>
+                    <option value="timbre">Timbre</option>
+                    <option value="pop">Pop</option>
+                    <option value="radar">Radar</option>
+                  </select>
+                  <button type="button" id="cfg-sound-test" class="btn btn-ghost btn-sm">▶️ Probar</button>
+                </span>
+              </label>
+              <label>Cantidad por página<br>
+                <select id="cfg-perpage" class="select">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="row" id="custom-colors" hidden style="margin-top:8px">
+              <label>Fondo<br><input type="color" id="cfg-c-bg" value="#0e1015" class="color"></label>
+              <label>Panel<br><input type="color" id="cfg-c-panel" value="#151a22" class="color"></label>
+              <label>Texto<br><input type="color" id="cfg-c-text" value="#e8ebf1" class="color"></label>
+              <label>Suave<br><input type="color" id="cfg-c-muted" value="#a9b2c3" class="color"></label>
+              <label>Acento<br><input type="color" id="cfg-c-accent" value="#6aa8ff" class="color"></label>
+              <label>Borde<br><input type="color" id="cfg-c-border" value="#232735" class="color"></label>
+              <label>Topbar 1<br><input type="color" id="cfg-c-topbar1" value="#0f131b" class="color"></label>
+              <label>Topbar 2<br><input type="color" id="cfg-c-topbar2" value="#0d1118" class="color"></label>
+              <label>Fila hover<br><input type="color" id="cfg-c-row" value="#121824" class="color"></label>
+            </div>
+          </div>
+        </form>
+      </section>
+      <footer class="modal-foot">
+        <button id="cfg-test"   type="button" class="btn btn-ghost">🖨 Probar impresión</button>
+        <div style="flex:1"></div>
+        <button id="cfg-cancel" type="button" class="btn btn-ghost">Cancelar</button>
+        <button id="cfg-save"   type="button" class="btn btn-primary">💾 Guardar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Overlay de alarma -->
+  <div id="alarm" class="alarm" hidden>
+    <div class="alarm-card">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <strong>🔔 ¡Nuevos pedidos!</strong>
+        <div id="alarm-list" class="muted"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="alarm-accept" type="button" class="btn btn-primary btn-sm">Aceptar</button>
+        <button id="alarm-stop"   type="button" class="btn btn-ghost btn-sm">Silenciar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./renderer.js" defer></script>
+</body>
+</html>
