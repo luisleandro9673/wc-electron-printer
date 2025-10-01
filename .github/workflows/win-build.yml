@@ -18,11 +18,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install deps (clean)
-        run: npm ci
+      # Evitar que corra tu postinstall (rebuild-usb.js) en CI
+      - name: Install deps (clean, no lifecycle)
+        run: npm ci --ignore-scripts
 
-      - name: Rebuild native modules
-        run: npx electron-rebuild -f -w escpos-usb -w usb -w escpos-network || echo ok
+      # FIX: un solo --which-module, y ejecutarlo con bash para que funcione "|| true"
+      - name: Rebuild native modules (best-effort)
+        shell: bash
+        run: npx electron-rebuild -f --which-module "escpos-usb,usb,escpos-network" || true
 
       - name: Build Windows (NSIS)
         run: npx electron-builder -w --publish=never
