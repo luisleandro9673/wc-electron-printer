@@ -1,3 +1,6 @@
+cp package.json package.json.bak
+
+cat > package.json <<'JSON'
 {
   "name": "wc-electron-printer",
   "version": "1.1.0",
@@ -39,7 +42,12 @@
       "preload.js",
       "rebuild-usb.js",
       "package.json",
-      "src/**/*",
+
+      "src/**/*",                      
+
+      "index.html",
+      "renderer.js",
+      "styles.css",
       "node_modules/**"
     ],
     "asar": true,
@@ -50,3 +58,4 @@
     "linux": { "target": ["AppImage"], "category": "Utility" }
   }
 }
+JSON

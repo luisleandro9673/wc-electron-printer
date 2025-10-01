@@ -21,7 +21,7 @@ jobs:
       - name: Install deps (clean)
         run: npm ci
 
-      # Recompila módulos nativos para la versión de Electron
+      # Recompila módulos nativos para Electron (usb/escpos)
       - name: Rebuild native modules
         run: npx electron-rebuild -f -w escpos-usb -w usb -w escpos-network || echo ok
 

@@ -374,9 +374,12 @@ function createWindow () {
   const win = new BrowserWindow({
     width: 1100, height: 740,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true, nodeIntegration: false, sandbox: true
-    }
+  preload: path.join(__dirname, 'preload.js'),
+  contextIsolation: true,
+  nodeIntegration: false,
+  sandbox: false   // ← cambiar true por false
+}
+
   });
   win.loadFile(path.join(__dirname, 'src', 'index.html'));
 }
